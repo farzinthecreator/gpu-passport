@@ -26,7 +26,7 @@ jobs:
       - name: Build exe
         run: |
           pip install pyinstaller
-          pyinstaller --onefile --windowed --name gpu-passport --add-data "specs.json;." gui.py
+          pyinstaller --onefile --windowed --name gpu-passport --icon icon.ico --add-data "specs.json;." --add-data "icon.png;." gui.py
       - uses: actions/upload-artifact@v4
         with:
           name: gpu-passport-exe
@@ -35,4 +35,5 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/v')
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release create "${{ github.ref_name }}" dist/gpu-passport.exe --title "GPU Passport ${{ github.ref_name }}" --notes "Download gpu-passport.exe and double-click it. Click 'I'm selling a card' to create a passport link, or 'I bought a card' to check a card. NVIDIA cards only. Windows may warn that the app is unrecognized because it isn't code-signed yet; the source code is public in this repository."
+        # GitHub sometimes starts two runs for one tag; the second one replaces the file instead of failing.
+        run: gh release upload "${{ github.ref_name }}" dist/gpu-passport.exe --clobber || gh release create "${{ github.ref_name }}" dist/gpu-passport.exe --title "GPU Passport ${{ github.ref_name }}" --notes "Download gpu-passport.exe and double-click it. Click 'I'm selling a card' to create a passport link, or 'I bought a card' to check a card. NVIDIA cards only. Windows may warn that the app is unrecognized because it isn't code-signed yet; the source code is public in this repository."

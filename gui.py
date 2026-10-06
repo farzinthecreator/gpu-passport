@@ -82,8 +82,11 @@ class App(tk.Tk):
         x, y = (self.winfo_screenwidth() - width) // 2, max(0, (self.winfo_screenheight() - height) // 2 - self.s(20))
         self.geometry(f"{width}x{height}+{x}+{y}")
         self.minsize(min(width, self.s(600)), min(height, self.s(520)))
-        self.icon = self.make_icon()
-        self.iconphoto(True, self.icon)
+        try:
+            self.icon = tk.PhotoImage(file=str(gp.APP_DIR / "icon.png"))  # made by tools/make_icon.py
+            self.iconphoto(True, self.icon)
+        except tk.TclError:
+            pass  # missing icon file: keep the default icon rather than fail to start
         self.configure(bg=self.c["bg"])
         self.setup_fonts()
         self.last_link = None     # read by the self-test
@@ -107,32 +110,6 @@ class App(tk.Tk):
         self.f_h1, self.f_h2, self.f_verdict = (display, 22, "bold"), (display, 16, "bold"), (display, 26, "bold")
         self.f_h3, self.f_body, self.f_body_bold = (body, 12, "bold"), (body, 10), (body, 10, "bold")
         self.f_small, self.f_small_bold, self.f_button, self.f_mono = (body, 9), (body, 9, "bold"), (body, 10, "bold"), (mono, 9)
-
-    def make_icon(self, size=64):
-        """Draws the app icon (a white check mark on a rounded accent square) without any image files."""
-        icon = tk.PhotoImage(width=size, height=size)
-        radius, stroke = size * 0.22, size * 0.08
-        a, b, c = (size * 0.27, size * 0.52), (size * 0.44, size * 0.68), (size * 0.74, size * 0.34)
-
-        def near_segment(px, py, p, q):
-            dx, dy = q[0] - p[0], q[1] - p[1]
-            t = max(0, min(1, ((px - p[0]) * dx + (py - p[1]) * dy) / (dx * dx + dy * dy)))
-            return (px - p[0] - t * dx) ** 2 + (py - p[1] - t * dy) ** 2 <= stroke ** 2
-
-        rows = []
-        for y in range(size):
-            row = []
-            for x in range(size):
-                cx, cy = min(max(x, radius), size - 1 - radius), min(max(y, radius), size - 1 - radius)
-                if (x - cx) ** 2 + (y - cy) ** 2 > radius ** 2:
-                    row.append(self.c["bg"])  # outside the rounded corners
-                elif near_segment(x, y, a, b) or near_segment(x, y, b, c):
-                    row.append("#FFFFFF")
-                else:
-                    row.append(LIGHT["accent"])
-            rows.append("{" + " ".join(row) + "}")
-        icon.put(" ".join(rows))
-        return icon
 
     def dark_title_bar(self):
         if not self.dark:

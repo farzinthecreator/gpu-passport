@@ -126,31 +126,25 @@ def decode(link):
 
 
 def verify(passport, gpus):
-    """Return (ok, messages). Runs on the BUYER's PC, which is the only result that can be trusted."""
+    """Return (ok, checks), checks = [(level, text)] with level "ok", "fail" or "warn".
+
+    Runs on the BUYER's PC, which is the only result that can be trusted.
+    """
     card = next((g for g in gpus if uuid_hash(g["uuid"]) == passport["uuid_hash"]), None)
     if card is None:
-        return False, ["This is NOT the card in the passport (its unique hardware ID is different)."]
-    messages = [f"Same physical card as in the passport (unique hardware ID matches): {card['name']}."]
-    ok = True
+        return False, [("fail", "This is NOT the card in the passport (its unique hardware ID is different).")]
+    checks = [("ok", f"Same physical card as in the passport (unique hardware ID matches): {card['name']}.")]
     # A scammer can put their real card's ID in the link but claim a better model, so re-check every claim locally.
     if (model_name(str(passport["model"])) != model_name(card["name"])
             or card["device_id"] != passport["device_id"] or card["vram_mib"] != passport["vram_mib"]):
-        ok = False
-        messages.append(
+        checks.append(("fail",
             f"The passport claims a {passport['model']} (device {passport['device_id']}, {passport['vram_mib']} MiB), "
-            f"but this card is a {card['name']} (device {card['device_id']}, {card['vram_mib']} MiB)."
-        )
+            f"but this card is a {card['name']} (device {card['device_id']}, {card['vram_mib']} MiB)."))
     status, detail = spec_check(card)
-    if status == "mismatch":
-        ok = False
-        messages.append(f"Possible fake card: {detail}")
-    elif status == "unknown":
-        messages.append(f"Warning: {detail}")
-    else:
-        messages.append(detail)
+    checks.append({"mismatch": ("fail", f"Possible fake card: {detail}"), "unknown": ("warn", detail)}.get(status, ("ok", detail)))
     if passport.get("vbios") and card["vbios"] != passport["vbios"]:
-        messages.append(f"Warning: BIOS changed since the passport was made ({passport['vbios']} -> {card['vbios']}).")
-    return ok, messages
+        checks.append(("warn", f"BIOS changed since the passport was made ({passport['vbios']} -> {card['vbios']})."))
+    return all(level != "fail" for level, _ in checks), checks
 
 
 def main(argv=None):
@@ -180,10 +174,10 @@ def main(argv=None):
         passport = decode(args.link)
     except ValueError as e:
         sys.exit(str(e))
-    ok, messages = verify(passport, gpus)
+    ok, checks = verify(passport, gpus)
     print("PASS" if ok else "FAIL")
-    for m in messages:
-        print("  - " + m)
+    for level, text in checks:
+        print(f"  {level.upper():<4} {text}")
     return 0 if ok else 1
 
 

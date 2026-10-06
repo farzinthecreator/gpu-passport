@@ -1,4 +1,4 @@
-"""Run with: python test_gpupassport.py"""
+﻿"""Run with: python test_gpupassport.py"""
 import contextlib
 import io
 import unittest
@@ -62,7 +62,7 @@ class GpuPassportTest(unittest.TestCase):
         passport = gp.make_passport(gpu(REAL_3070))
         ok, messages = gp.verify(passport, [gpu(OTHER_3070)])
         self.assertFalse(ok)
-        self.assertIn("NOT the card", messages[0])
+        self.assertIn("NOT the card", messages[0][1])
 
     def test_verify_fails_when_scammer_edits_claims_in_link(self):
         # Seller uses the fake card's real ID but edits the link to claim a real 3070.
@@ -76,7 +76,7 @@ class GpuPassportTest(unittest.TestCase):
         passport = gp.make_passport(gpu(FAKE_3070))
         ok, messages = gp.verify(passport, [gpu(FAKE_3070)])
         self.assertFalse(ok)
-        self.assertTrue(any("Possible fake" in m for m in messages))
+        self.assertTrue(any(level == "fail" and "Possible fake" in text for level, text in messages))
 
     def test_menu_create_then_verify(self):
         out = io.StringIO()

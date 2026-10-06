@@ -22,12 +22,11 @@ jobs:
         run: |
           python test_gpupassport.py
           python test_bruteforce.py
+          python gui.py --mock --selftest
       - name: Build exe
         run: |
           pip install pyinstaller
-          pyinstaller --onefile --name gpu-passport --add-data "specs.json;." gpupassport.py
-      - name: Smoke test the exe
-        run: dist\gpu-passport.exe --mock create
+          pyinstaller --onefile --windowed --name gpu-passport --add-data "specs.json;." gui.py
       - uses: actions/upload-artifact@v4
         with:
           name: gpu-passport-exe
@@ -36,4 +35,4 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/v')
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release create "${{ github.ref_name }}" dist/gpu-passport.exe --title "GPU Passport ${{ github.ref_name }}" --notes "Download gpu-passport.exe, double-click it, and choose 1 (selling) or 2 (bought). NVIDIA cards only. Windows may warn that the app is unrecognized because it isn't code-signed yet; the source code is public in this repository."
+        run: gh release create "${{ github.ref_name }}" dist/gpu-passport.exe --title "GPU Passport ${{ github.ref_name }}" --notes "Download gpu-passport.exe and double-click it. Click 'I'm selling a card' to create a passport link, or 'I bought a card' to check a card. NVIDIA cards only. Windows may warn that the app is unrecognized because it isn't code-signed yet; the source code is public in this repository."

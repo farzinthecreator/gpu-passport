@@ -173,7 +173,7 @@ def main(argv=None):
         print(f"Model check: {status.upper()}: {detail}")
         print("\nYour passport link (put it in your listing):\n")
         print(SITE + "#" + encode(make_passport(gpu)))
-        print(f"\nWhen the card arrives, the buyer opens GPU Passport ({DOWNLOAD}), chooses 2 and pastes this link.")
+        print(f"\nWhen the card arrives, the buyer opens GPU Passport ({DOWNLOAD}), clicks \"I bought a card\" and pastes this link.")
         return 0
 
     try:

@@ -16,11 +16,15 @@ The seller's passport alone is only a claim, since the seller's PC could be tamp
 
 No account, no server, no tracking: the passport data lives inside the link, and only a hash of the hardware ID is shared.
 
+| Seller: create a passport | Buyer: check the card |
+|---|---|
+| ![Seller screen](docs/app-selling.png) | ![Buyer screen showing PASS](docs/app-buying.png) |
+
 ## Quick start
 
 Requires an **NVIDIA** card with its driver installed (NVIDIA only for now).
 
-**Windows, no install:** download `gpu-passport.exe` from the [latest release](https://github.com/farzinthecreator/gpu-passport/releases/latest), double-click it, and choose **1** (selling) or **2** (bought). Windows may warn that the app is unrecognized because it isn't code-signed yet: click "More info" → "Run anyway". The .exe is built automatically by GitHub from the code in this repository.
+**Windows, no install:** download `gpu-passport.exe` from the [latest release](https://github.com/farzinthecreator/gpu-passport/releases/latest), double-click it, and click **I'm selling a card** or **I bought a card**. Windows may warn that the app is unrecognized because it isn't code-signed yet: click "More info" → "Run anyway". The .exe is built automatically by GitHub from the code in this repository.
 
 **With Python 3.9+ (Windows or Linux):**
 

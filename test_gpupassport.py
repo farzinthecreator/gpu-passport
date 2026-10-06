@@ -1,5 +1,8 @@
 """Run with: python test_gpupassport.py"""
+import contextlib
+import io
 import unittest
+from unittest import mock
 
 import gpupassport as gp
 
@@ -74,6 +77,19 @@ class GpuPassportTest(unittest.TestCase):
         ok, messages = gp.verify(passport, [gpu(FAKE_3070)])
         self.assertFalse(ok)
         self.assertTrue(any("Possible fake" in m for m in messages))
+
+    def test_menu_create_then_verify(self):
+        out = io.StringIO()
+        with mock.patch("builtins.input", side_effect=["1"]), contextlib.redirect_stdout(out):
+            self.assertEqual(gp.interactive(mock=True), 0)
+        link = next(line for line in out.getvalue().splitlines() if line.startswith(gp.SITE))
+        with mock.patch("builtins.input", side_effect=["2", link]), contextlib.redirect_stdout(io.StringIO()) as out2:
+            self.assertEqual(gp.interactive(mock=True), 0)
+        self.assertIn("PASS", out2.getvalue())
+
+    def test_menu_rejects_other_input(self):
+        with mock.patch("builtins.input", side_effect=["x"]), contextlib.redirect_stdout(io.StringIO()):
+            self.assertEqual(gp.interactive(mock=True), 1)
 
     def test_verify_picks_matching_card_among_several(self):
         passport = gp.make_passport(gpu(REAL_3070))

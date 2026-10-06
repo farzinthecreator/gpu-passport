@@ -19,7 +19,9 @@ FORMAT_VERSION = 1
 SITE = "https://farzinthecreator.github.io/gpu-passport/"
 FIELDS = "name,uuid,pci.device_id,vbios_version,memory.total,driver_version"
 VRAM_TOLERANCE = 0.03  # nvidia-smi reports slightly less than the marketing size (e.g. 24564 MiB on a 24 GB card)
-SPECS = {k: v for k, v in json.loads(Path(__file__).with_name("specs.json").read_text()).items() if not k.startswith("_")}
+APP_DIR = Path(getattr(sys, "_MEIPASS", Path(__file__).parent))  # _MEIPASS: where the .exe unpacks bundled files
+SPECS = {k: v for k, v in json.loads((APP_DIR / "specs.json").read_text()).items() if not k.startswith("_")}
+DOWNLOAD = "https://github.com/farzinthecreator/gpu-passport/releases/latest"
 MOCK_OUTPUT = "NVIDIA GeForce RTX 3070, GPU-11111111-2222-3333-4444-555555555555, 0x248410DE, 94.04.3A.00.62, 8192, 560.94"
 
 
@@ -170,7 +172,7 @@ def main(argv=None):
         print(f"Model check: {status.upper()}: {detail}")
         print("\nYour passport link (put it in your listing):\n")
         print(SITE + "#" + encode(make_passport(gpu)))
-        print("\nTell the buyer to run `python gpupassport.py verify \"<link>\"` when the card arrives.")
+        print(f"\nWhen the card arrives, the buyer opens GPU Passport ({DOWNLOAD}), chooses 2 and pastes this link.")
         return 0
 
     try:
@@ -184,5 +186,30 @@ def main(argv=None):
     return 0 if ok else 1
 
 
+def interactive(mock=False):
+    """Menu for people who double-click the .exe instead of typing commands."""
+    flags = ["--mock"] if mock else []
+    print("GPU Passport\n")
+    print("  1) I'm SELLING a card: create a passport link")
+    print("  2) I BOUGHT a card: check it against a passport link")
+    choice = input("\nType 1 or 2 and press Enter: ").strip()
+    if choice == "1":
+        return main(flags + ["create"])
+    if choice == "2":
+        link = input("Paste the passport link and press Enter: ").strip()
+        return main(flags + ["verify", link])
+    print("Please type 1 or 2.")
+    return 1
+
+
 if __name__ == "__main__":
-    sys.exit(main())
+    if len(sys.argv) > 1:
+        sys.exit(main())
+    try:
+        code = interactive()
+    except SystemExit as e:  # error messages from sys.exit(...) would otherwise vanish with the window
+        if isinstance(e.code, str):
+            print(e.code)
+        code = e.code if isinstance(e.code, int) else 1
+    input("\nPress Enter to close...")  # keep a double-clicked window open so the result can be read
+    sys.exit(code)

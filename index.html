@@ -27,6 +27,7 @@
   .ok { color: var(--ok); } .bad { color: var(--bad); } .warn { color: var(--warn); }
   dl { display: grid; grid-template-columns: max-content 1fr; gap: 6px 16px; margin: 0; }
   dt { color: var(--muted); } dd { margin: 0; overflow-wrap: anywhere; }
+  a { color: var(--accent); }
   code { background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 2px 6px; font-size: .9em; overflow-wrap: anywhere; }
 </style>
 </head>
@@ -96,8 +97,10 @@ function render() {
     )),
     el("div", { className: "card" },
       el("p", {}, el("strong", { textContent: "Buyer: verify when the card arrives" })),
-      el("p", {}, "Install the card, then run this on your PC. It checks the card's unique hardware ID against this passport:"),
-      el("p", {}, el("code", { textContent: 'python gpupassport.py verify "' + location.href + '"' })),
+      el("p", {}, "Install the card, ",
+        el("a", { href: "https://github.com/farzinthecreator/gpu-passport/releases/latest", textContent: "download GPU Passport for Windows" }),
+        ", double-click it, choose 2 and paste this page's link. It checks the card's unique hardware ID against this passport."),
+      el("p", { className: "sub" }, "Or with Python: ", el("code", { textContent: 'python gpupassport.py verify "' + location.href + '"' })),
       el("p", { className: "sub", textContent: "PASS means it's the same physical card and the model is genuine. FAIL means don't accept it." })),
     el("div", { className: "card" }, el("dl", {},
       el("dt", { textContent: "Device ID" }), el("dd", { textContent: p.device_id }),

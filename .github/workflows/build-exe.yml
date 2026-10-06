@@ -1,0 +1,37 @@
+# Builds gpu-passport.exe on GitHub's servers from the public source.
+# Push a tag like v0.2.0 to publish it as a release download; any other run just keeps the .exe as a build artifact.
+name: Build Windows exe
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write  # needed to create the release
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Run tests
+        run: python test_gpupassport.py
+      - name: Build exe
+        run: |
+          pip install pyinstaller
+          pyinstaller --onefile --name gpu-passport --add-data "specs.json;." gpupassport.py
+      - name: Smoke test the exe
+        run: dist\gpu-passport.exe --mock create
+      - uses: actions/upload-artifact@v4
+        with:
+          name: gpu-passport-exe
+          path: dist/gpu-passport.exe
+      - name: Publish release
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "${{ github.ref_name }}" dist/gpu-passport.exe --title "GPU Passport ${{ github.ref_name }}" --notes "Download gpu-passport.exe, double-click it, and choose 1 (selling) or 2 (bought). NVIDIA cards only. Windows may warn that the app is unrecognized because it isn't code-signed yet; the source code is public in this repository."

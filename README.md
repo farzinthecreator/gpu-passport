@@ -18,7 +18,11 @@ No account, no server, no tracking: the passport data lives inside the link, and
 
 ## Quick start
 
-Requires Windows or Linux, Python 3.9+, and an **NVIDIA** card with its driver installed (v0.1 is NVIDIA only).
+Requires an **NVIDIA** card with its driver installed (NVIDIA only for now).
+
+**Windows, no install:** download `gpu-passport.exe` from the [latest release](https://github.com/farzinthecreator/gpu-passport/releases/latest), double-click it, and choose **1** (selling) or **2** (bought). Windows may warn that the app is unrecognized because it isn't code-signed yet: click "More info" → "Run anyway". The .exe is built automatically by GitHub from the code in this repository.
+
+**With Python 3.9+ (Windows or Linux):**
 
 ```bash
 git clone https://github.com/farzinthecreator/gpu-passport

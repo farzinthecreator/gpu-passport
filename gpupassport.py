@@ -9,6 +9,7 @@ import argparse
 import base64
 import hashlib
 import json
+import re
 import subprocess
 import sys
 from datetime import datetime, timezone
@@ -33,7 +34,7 @@ def parse_gpus(csv_text):
         gpus.append({
             "name": name,
             "uuid": uuid,
-            "device_id": pci_id[2:6].upper(),  # 0x248410DE -> 2484 (device), 10DE is NVIDIA's vendor id
+            "device_id": pci_id[2:6].lower(),  # 0x1F8310DE -> 1f83 (device), 10DE is NVIDIA's vendor id
             "vbios": vbios,
             "vram_mib": int(vram),
             "driver": driver,
@@ -66,13 +67,20 @@ def uuid_hash(uuid):
     return hashlib.sha256(f"gpu-passport:v1:{uuid.strip().lower()}".encode()).hexdigest()
 
 
+def model_name(name):
+    """'NVIDIA GeForce RTX 3060 12GB' -> 'rtx 3060'. Drops brand words and variant tags that don't change the model."""
+    words = [w for w in name.lower().split() if w not in ("nvidia", "geforce", "lhr", "oem") and not re.fullmatch(r"\d+gb", w)]
+    return " ".join(words)
+
+
 def spec_check(gpu):
     """Compare what the card says it is with the known specs for its hardware device ID."""
     spec = SPECS.get(gpu["device_id"])
     if spec is None:
         return "unknown", f"Device ID {gpu['device_id']} is not in the database yet, so the model can't be checked."
     problems = []
-    if spec["model"].lower() not in gpu["name"].lower():
+    # Exact match, so a 3070 renamed to "3070 Ti" is caught.
+    if model_name(gpu["name"]) != model_name(spec["model"]):
         problems.append(f"name says '{gpu['name']}' but the hardware ID belongs to a {spec['model']}")
     if not any(abs(gpu["vram_mib"] - v) <= v * VRAM_TOLERANCE for v in spec["vram_mib"]):
         problems.append(f"{gpu['vram_mib']} MiB of memory, but a {spec['model']} has {spec['vram_mib']} MiB")

@@ -27,6 +27,18 @@ class GpuPassportTest(unittest.TestCase):
         self.assertEqual(gp.spec_check(gpu(FAKE_3070))[0], "mismatch")
         self.assertEqual(gp.spec_check(gpu(UNKNOWN))[0], "unknown")
 
+    def test_spec_check_finds_ids_with_letters(self):
+        gtx = gpu("NVIDIA GeForce GTX 1660 SUPER, GPU-ffff-6666, 0x21C410DE, 90.16.48.00.AA, 6144, 560.94")
+        self.assertEqual(gp.spec_check(gtx)[0], "ok")
+
+    def test_spec_check_catches_renamed_lower_model(self):
+        renamed = gpu("NVIDIA GeForce RTX 3070 Ti, GPU-eeee-5555, 0x248410DE, 94.04.3A.00.62, 8192, 560.94")
+        self.assertEqual(gp.spec_check(renamed)[0], "mismatch")
+
+    def test_spec_check_ignores_memory_and_lhr_tags_in_name(self):
+        self.assertEqual(gp.model_name("NVIDIA GeForce RTX 3060 12GB"), "rtx 3060")
+        self.assertEqual(gp.model_name("GeForce RTX 3080 LHR"), "rtx 3080")
+
     def test_link_round_trip(self):
         passport = gp.make_passport(gpu(REAL_3070))
         link = gp.SITE + "#" + gp.encode(passport)

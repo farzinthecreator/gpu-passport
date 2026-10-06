@@ -48,7 +48,7 @@ No NVIDIA card? Try it with a simulated RTX 3070: `python gpupassport.py --mock 
 - **NVIDIA only** for now. AMD cards don't expose an easy unique ID; help wanted.
 - **No stress or memory test yet.** Still run memtest_vulkan and a benchmark after buying. Built-in tests are planned.
 - A very advanced fake that rewrites the hardware ID too would pass the model check. Real benchmark scores catch those, which is planned.
-- `specs.json` covers popular RTX 30 and 40 series cards so far (device IDs checked against the [PCI ID database](https://pci-ids.ucw.cz/read/PC/10de)). Other cards show "UNKNOWN". Add cards by pull request.
+- `specs.json` covers 80 desktop cards: GTX 16 and RTX 20, 30, 40 and 50 series (device IDs checked against the [PCI ID database](https://pci-ids.ucw.cz/read/PC/10de)). Older cards and rare variants show "UNKNOWN". Add cards by pull request.
 
 ## Testers wanted
 

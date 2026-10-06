@@ -19,7 +19,9 @@ jobs:
         with:
           python-version: "3.12"
       - name: Run tests
-        run: python test_gpupassport.py
+        run: |
+          python test_gpupassport.py
+          python test_bruteforce.py
       - name: Build exe
         run: |
           pip install pyinstaller

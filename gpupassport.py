@@ -130,14 +130,15 @@ def verify(passport, gpus):
     card = next((g for g in gpus if uuid_hash(g["uuid"]) == passport["uuid_hash"]), None)
     if card is None:
         return False, ["This is NOT the card in the passport (its unique hardware ID is different)."]
-    messages = ["Same physical card as in the passport (unique hardware ID matches)."]
+    messages = [f"Same physical card as in the passport (unique hardware ID matches): {card['name']}."]
     ok = True
-    # A scammer can put their real card's ID in the link but claim a better model, so re-check the claims locally.
-    if card["device_id"] != passport["device_id"] or card["vram_mib"] != passport["vram_mib"]:
+    # A scammer can put their real card's ID in the link but claim a better model, so re-check every claim locally.
+    if (model_name(str(passport["model"])) != model_name(card["name"])
+            or card["device_id"] != passport["device_id"] or card["vram_mib"] != passport["vram_mib"]):
         ok = False
         messages.append(
-            f"The passport claims device {passport['device_id']} with {passport['vram_mib']} MiB, "
-            f"but this card is device {card['device_id']} with {card['vram_mib']} MiB."
+            f"The passport claims a {passport['model']} (device {passport['device_id']}, {passport['vram_mib']} MiB), "
+            f"but this card is a {card['name']} (device {card['device_id']}, {card['vram_mib']} MiB)."
         )
     status, detail = spec_check(card)
     if status == "mismatch":
@@ -180,7 +181,7 @@ def main(argv=None):
     except ValueError as e:
         sys.exit(str(e))
     ok, messages = verify(passport, gpus)
-    print(("PASS: " if ok else "FAIL: ") + passport["model"])
+    print("PASS" if ok else "FAIL")
     for m in messages:
         print("  - " + m)
     return 0 if ok else 1

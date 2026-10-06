@@ -61,6 +61,29 @@ function decode(hash) {
   return passport;
 }
 
+// The link's own "spec" verdict could be edited, so re-check its claims against the card database here.
+let SPECS = null;
+const specsLoaded = fetch("specs.json").then(r => r.ok ? r.json() : null).then(s => { SPECS = s; }).catch(() => {});
+
+// Same rules as model_name() in gpupassport.py.
+function modelName(name) {
+  return String(name).toLowerCase().split(/\s+/)
+    .filter(w => w && !["nvidia", "geforce", "lhr", "oem"].includes(w) && !/^\d+gb$/.test(w)).join(" ");
+}
+
+function specCheck(p) {
+  if (!SPECS) return check("warn", "?", "Model not checked", "Couldn't load the card database. Check your connection and reload.");
+  const id = String(p.device_id);
+  const spec = !id.startsWith("_") && Object.hasOwn(SPECS, id) ? SPECS[id] : null;
+  if (!spec) return check("warn", "?", "Model not checked", "This card isn't in the database yet.");
+  const vramOk = spec.vram_mib.some(v => Math.abs(Number(p.vram_mib) - v) <= v * 0.03);
+  if (modelName(p.model) !== modelName(spec.model) || !vramOk) {
+    return check("bad", "✗", "Model mismatch",
+      "This link claims a " + String(p.model) + ", but its hardware ID belongs to a " + spec.model + ". This may be a fake card or an edited link.");
+  }
+  return check("ok", "✓", "Real model", "The hardware ID matches a genuine " + spec.model + ".");
+}
+
 function check(cls, icon, title, detail) {
   return el("li", {}, el("span", { className: "icon " + cls, textContent: icon }),
             el("div", {}, el("strong", { textContent: title }), el("div", { className: "sub", textContent: detail })));
@@ -81,11 +104,7 @@ function render() {
       textContent: e.message === "version" ? "This passport was made with a newer version. Update GPU Passport." : "This link is not a valid GPU Passport, or it was damaged when copied." })));
     return;
   }
-  const spec = {
-    ok: check("ok", "✓", "Real model", "The card's hardware ID matches a genuine " + p.model + "."),
-    mismatch: check("bad", "✗", "Model mismatch", "The hardware ID does not match the name. This may be a fake card."),
-    unknown: check("warn", "?", "Model not checked", "This card isn't in the database yet."),
-  }[p.spec] || check("warn", "?", "Model not checked", "No model check in this passport.");
+  const spec = specCheck(p);
 
   app.append(
     el("div", { className: "card" },
@@ -111,7 +130,7 @@ function render() {
 }
 
 window.addEventListener("hashchange", render);
-render();
+specsLoaded.then(render);
 </script>
 </body>
 </html>

@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GPU Passport</title>
+<style>
+  :root { --bg: #f6f7f9; --card: #ffffff; --text: #16181d; --muted: #5d6470; --line: #dde1e7;
+          --ok: #1a7f37; --bad: #c62828; --warn: #a15c00; --accent: #2457c5; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #111317; --card: #1a1d23; --text: #e9ecf1; --muted: #9aa3b0; --line: #2c313a;
+            --ok: #4cc26a; --bad: #ff6b6b; --warn: #f0a53a; --accent: #7aa2ff; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+         font: 16px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  main { max-width: 640px; margin: 0 auto; padding: 32px 16px 48px; }
+  h1 { font-size: 1.5rem; margin: 0 0 4px; }
+  .sub { color: var(--muted); margin: 0 0 24px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 20px; margin-bottom: 16px; }
+  .model { font-size: 1.25rem; font-weight: 650; margin: 0 0 4px; overflow-wrap: anywhere; }
+  .checks { list-style: none; padding: 0; margin: 0; }
+  .checks li { display: flex; gap: 12px; padding: 10px 0; border-top: 1px solid var(--line); }
+  .checks li:first-child { border-top: 0; }
+  .checks .sub { margin: 0; }
+  .icon { font-weight: 700; width: 1.5em; flex: none; }
+  .ok { color: var(--ok); } .bad { color: var(--bad); } .warn { color: var(--warn); }
+  dl { display: grid; grid-template-columns: max-content 1fr; gap: 6px 16px; margin: 0; }
+  dt { color: var(--muted); } dd { margin: 0; overflow-wrap: anywhere; }
+  code { background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 2px 6px; font-size: .9em; overflow-wrap: anywhere; }
+</style>
+</head>
+<body>
+<main>
+  <h1>GPU Passport</h1>
+  <p class="sub">Proof that a used graphics card is real, and is the card you were sold.</p>
+  <div id="app"></div>
+</main>
+<script>
+// Must match FORMAT_VERSION and spec statuses in gpupassport.py.
+const FORMAT_VERSION = 1;
+const app = document.getElementById("app");
+
+// Everything in the link is untrusted: build DOM nodes with textContent, never innerHTML.
+function el(tag, attrs = {}, ...children) {
+  const node = document.createElement(tag);
+  Object.assign(node, attrs);
+  for (const child of children) node.append(child);
+  return node;
+}
+
+function decode(hash) {
+  const data = hash.replace(/^#/, "").replace(/-/g, "+").replace(/_/g, "/");
+  const padded = data + "=".repeat((4 - data.length % 4) % 4);
+  const passport = JSON.parse(new TextDecoder().decode(Uint8Array.from(atob(padded), c => c.charCodeAt(0))));
+  for (const key of ["v", "model", "device_id", "vram_mib", "uuid_hash"]) {
+    if (!(key in passport)) throw new Error("incomplete");
+  }
+  if (passport.v !== FORMAT_VERSION) throw new Error("version");
+  return passport;
+}
+
+function check(cls, icon, title, detail) {
+  return el("li", {}, el("span", { className: "icon " + cls, textContent: icon }),
+            el("div", {}, el("strong", { textContent: title }), el("div", { className: "sub", textContent: detail })));
+}
+
+function render() {
+  app.replaceChildren();
+  if (!location.hash || location.hash.length < 2) {
+    app.append(el("div", { className: "card" },
+      el("p", { textContent: "Open a passport link from a listing to see the card's details here." }),
+      el("p", {}, "Sellers create one with ", el("code", { textContent: "python gpupassport.py create" }), ".")));
+    return;
+  }
+  let p;
+  try { p = decode(location.hash); }
+  catch (e) {
+    app.append(el("div", { className: "card" }, el("p", { className: "bad",
+      textContent: e.message === "version" ? "This passport was made with a newer version. Update GPU Passport." : "This link is not a valid GPU Passport, or it was damaged when copied." })));
+    return;
+  }
+  const spec = {
+    ok: check("ok", "✓", "Real model", "The card's hardware ID matches a genuine " + p.model + "."),
+    mismatch: check("bad", "✗", "Model mismatch", "The hardware ID does not match the name. This may be a fake card."),
+    unknown: check("warn", "?", "Model not checked", "This card isn't in the database yet."),
+  }[p.spec] || check("warn", "?", "Model not checked", "No model check in this passport.");
+
+  app.append(
+    el("div", { className: "card" },
+      el("p", { className: "model", textContent: p.model }),
+      el("p", { className: "sub", textContent: (p.vram_mib / 1024).toFixed(0) + " GB memory · passport created " + (p.created || "unknown") })),
+    el("div", { className: "card" }, el("ul", { className: "checks" },
+      spec,
+      check("warn", "!", "Seller-reported", "The seller's own PC made this passport, so on its own it is a claim, not proof."),
+    )),
+    el("div", { className: "card" },
+      el("p", {}, el("strong", { textContent: "Buyer: verify when the card arrives" })),
+      el("p", {}, "Install the card, then run this on your PC. It checks the card's unique hardware ID against this passport:"),
+      el("p", {}, el("code", { textContent: 'python gpupassport.py verify "' + location.href + '"' })),
+      el("p", { className: "sub", textContent: "PASS means it's the same physical card and the model is genuine. FAIL means don't accept it." })),
+    el("div", { className: "card" }, el("dl", {},
+      el("dt", { textContent: "Device ID" }), el("dd", { textContent: p.device_id }),
+      el("dt", { textContent: "BIOS" }), el("dd", { textContent: p.vbios || "unknown" }),
+      el("dt", { textContent: "Driver" }), el("dd", { textContent: p.driver || "unknown" }),
+      el("dt", { textContent: "Card ID (hashed)" }), el("dd", { textContent: String(p.uuid_hash).slice(0, 16) + "…" }))),
+  );
+}
+
+window.addEventListener("hashchange", render);
+render();
+</script>
+</body>
+</html>
